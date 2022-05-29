@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  aad-b2c:
+    image: avranju/aad-b2c:0.1
+    restart: always
+    container_name: aad-b2c
+    environment:
+      - AADB2C_DEVICE_CODE_CLIENT_ID="${AADB2C_DEVICE_CODE_CLIENT_ID}"
+      - AADB2C_DEVICE_CODE_CLIENT_SECRET="${AADB2C_DEVICE_CODE_CLIENT_SECRET}"
+      - AADB2C_DEVICE_CODE_TENANT_NAME="${AADB2C_DEVICE_CODE_TENANT_NAME}"
+      - AADB2C_DEVICE_CODE_POLICY_NAME="${AADB2C_DEVICE_CODE_POLICY_NAME}"
+      - AADB2C_DEVICE_CODE_SITE_URL="${AADB2C_DEVICE_CODE_SITE_URL}"
+      - AADB2C_DEVICE_CODE_CODE_LENGTH="8"
+      - AADB2C_DEVICE_CODE_LISTEN_URL="0.0.0.0:32468"
+      - AADB2C_DEVICE_CODE_SCOPES="${AADB2C_DEVICE_CODE_SCOPES}"
+      - RUST_LOG="aad_b2c_device_code_flow=trace,tower_http=trace"
+    ports:
+      - "32468:32468"
