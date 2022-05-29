@@ -117,9 +117,13 @@ impl State {
     }
 
     fn set_code_token(&mut self, code: String, token: BasicTokenResponse) -> bool {
-        let mut code_map = self.code_map.lock().unwrap();
-
-        match code_map.entry(code).and_modify(|e| e.token = Some(token)) {
+        match self
+            .code_map
+            .lock()
+            .unwrap()
+            .entry(code)
+            .and_modify(|e| e.token = Some(token))
+        {
             Entry::Occupied(_) => true,
             Entry::Vacant(_) => false,
         }
