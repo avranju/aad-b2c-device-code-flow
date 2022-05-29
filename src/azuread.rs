@@ -10,8 +10,18 @@ use url::Url;
 #[derive(Debug)]
 pub struct AuthorizeContext {
     pub pkce_code_verifier: PkceCodeVerifier,
-    pub csrf_state: CsrfToken,
+    pub csrf_token: CsrfToken,
     pub authorize_url: Url,
+}
+
+impl Clone for AuthorizeContext {
+    fn clone(&self) -> Self {
+        Self {
+            pkce_code_verifier: PkceCodeVerifier::new(self.pkce_code_verifier.secret().clone()),
+            csrf_token: self.csrf_token.clone(),
+            authorize_url: self.authorize_url.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -21,7 +31,7 @@ pub struct AzureAd {
     pub redirect_url: Url,
     pub auth_url: AuthUrl,
     pub token_url: TokenUrl,
-    pub scopes: Vec<&'static str>,
+    pub scopes: Vec<String>,
 }
 
 impl AzureAd {
@@ -31,7 +41,7 @@ impl AzureAd {
         tenant_name: String,
         policy_name: String,
         redirect_url: Url,
-        scopes: Vec<&'static str>,
+        scopes: Vec<String>,
     ) -> Result<Self> {
         let client_id = ClientId::new(client_id);
         let client_secret = ClientSecret::new(client_secret);
@@ -54,7 +64,7 @@ impl AzureAd {
         })
     }
 
-    pub fn create_authorize_url(&mut self) -> AuthorizeContext {
+    pub fn create_authorize_context(&mut self) -> AuthorizeContext {
         let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
 
         let client = BasicClient::new(
@@ -68,13 +78,13 @@ impl AzureAd {
 
         let (authorize_url, csrf_state) = client
             .authorize_url(oauth2::CsrfToken::new_random)
-            .add_scopes(self.scopes.iter().map(|s| Scope::new(s.to_string())))
-            .set_pkce_challenge(pkce_code_challenge.clone())
+            .add_scopes(self.scopes.iter().map(|s| Scope::new(s.clone())))
+            .set_pkce_challenge(pkce_code_challenge)
             .url();
 
         AuthorizeContext {
             pkce_code_verifier,
-            csrf_state,
+            csrf_token: csrf_state,
             authorize_url,
         }
     }
@@ -82,7 +92,7 @@ impl AzureAd {
     pub async fn exchange_code(
         &self,
         code: String,
-        context: AuthorizeContext,
+        context: &AuthorizeContext,
     ) -> Result<BasicTokenResponse> {
         let client = BasicClient::new(
             self.client_id.clone(),
@@ -92,11 +102,13 @@ impl AzureAd {
         )
         .set_auth_type(AuthType::RequestBody);
 
-        let scopes_str = self.scopes.join(" ").to_string();
+        let scopes_str = self.scopes.join(" ");
 
         Ok(client
             .exchange_code(AuthorizationCode::new(code))
-            .set_pkce_verifier(context.pkce_code_verifier)
+            .set_pkce_verifier(PkceCodeVerifier::new(
+                context.pkce_code_verifier.secret().clone(),
+            ))
             .add_extra_param("scope", scopes_str)
             .request_async(async_http_client)
             .await?)
