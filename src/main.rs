@@ -52,6 +52,13 @@ struct CodeEntry {
 }
 
 #[derive(Clone, Debug)]
+enum CodeTokenStatus {
+    Invalid,
+    Pending,
+    Complete(BasicTokenResponse),
+}
+
+#[derive(Clone, Debug)]
 struct State {
     azure_ad: AzureAd,
     site_url: Url,
@@ -118,13 +125,14 @@ impl State {
         }
     }
 
-    fn get_code_token(&self, code: String) -> Option<BasicTokenResponse> {
-        self.code_map
-            .lock()
-            .unwrap()
-            .get(&code)
-            .and_then(|e| e.token.as_ref())
-            .cloned()
+    fn get_code_token(&self, code: String) -> CodeTokenStatus {
+        match self.code_map.lock().unwrap().get(&code) {
+            Some(e) => match e.token.as_ref() {
+                Some(t) => CodeTokenStatus::Complete(t.clone()),
+                None => CodeTokenStatus::Pending,
+            },
+            None => CodeTokenStatus::Invalid,
+        }
     }
 }
 
@@ -293,8 +301,9 @@ async fn poll_token(
     Extension(state): Extension<State>,
     Query(poll_code): Query<PollDeviceCode>,
 ) -> Result<Json<BasicTokenResponse>, StatusCode> {
-    state
-        .get_code_token(poll_code.code)
-        .map(Json)
-        .ok_or(StatusCode::NOT_FOUND)
+    match state.get_code_token(poll_code.code) {
+        CodeTokenStatus::Invalid => Err(StatusCode::NOT_FOUND),
+        CodeTokenStatus::Pending => Err(StatusCode::NO_CONTENT),
+        CodeTokenStatus::Complete(token) => Ok(Json(token)),
+    }
 }

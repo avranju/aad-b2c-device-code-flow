@@ -29,10 +29,10 @@ Here are the steps for building the code:
 
 ## Running
 
-The service requires a slew of environment variables to be set before it can run.
-The repo includes a `Dockerfile` and a `docker-compose.yml` file that you can
-look at to see what a typical deployment might look like. Here's some documentation
-for what the environment variables mean.
+The service requires a slew of environment variables to be set before it can
+run. The repo includes a `Dockerfile` and a `docker-compose.yml` file that you
+can look at to see what a typical deployment might look like. Here's some
+documentation for what the environment variables mean.
 
 | Environment Variable             | Description                                                                                                                                                                                                                                                          |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -71,17 +71,21 @@ server: Caddy
 
 ### 2. Authenticate
 
-Copy the `code` value into the clipboard and open the link in the `url` property in a browser. You should see a screen that looks like this in the browser:
+Copy the `code` value into the clipboard and open the link in the `url` property
+in a browser. You should see a screen that looks like this in the browser:
 
 ![](images/device-code.png)
 
-Paste the code you copied into the text box and click "Next". You should be taken through the Azure AD B2C user flow. Once authentication completes successfully, you should see a screen like this:
+Paste the code you copied into the text box and click "Next". You should be
+taken through the Azure AD B2C user flow. Once authentication completes
+successfully, you should see a screen like this:
 
 ![](images/auth-success.png)
 
 ### 3. Retrieve Token
 
-Fetch the access token by issuing a `GET` request to the `/poll-token` endpoint passing in the device code via the query string parameter `code`.
+Fetch the access token by issuing a `GET` request to the `/poll-token` endpoint
+passing in the device code via the query string parameter `code`.
 
 ```shell
 $ xh "http://localhost:32468/poll-token?code=Y5HLZ7XO"
@@ -100,4 +104,8 @@ server: Caddy
 }
 ```
 
-You can imagine your app continually polling the `/poll-token` endpoint while waiting for the user to sign-in. While the authentication is pending `/poll-token` will return HTTP status code `404`.
+You can imagine your app continually polling the `/poll-token` endpoint while
+waiting for the user to sign-in. While the authentication is pending
+`/poll-token` will return HTTP status code `204` to indicate that the
+authentication is not complete yet. If an invalid code is passed then HTTP
+status code `404` is returned.
