@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Device Code Login</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body>
+        <div class="grid place-items-center h-screen">
+            <div class="w-96 h-auto shadow-xl mx-auto px-4 mt-8 font-sans border-t-8 border-sky-600 pt-9 pb-9 pl-9 pr-9">
+                <h1 class="text-3xl mt-2">Enter Code</h1>
+                <h3 class="mt-6">
+                    Enter the code displayed on your app or device.
+                </h2>
+                <form action="/login" method="post" onsubmit="return checkCode();">
+                    <div id="error-msg" class="text-red-600 mt-8 text-sm"></div>
+                    <input type="text" name="device-code"
+                           class="w-full mt-2 border-b-2 border-slate-400 focus:outline-none pb-2"
+                           id="device-code" maxlength="16"
+                           autocomplete="off" placeholder="Code"
+                           autofocus />
+                    <input type="submit" value="Next"
+                           class="w-28 h-8 bg-sky-600 text-white mt-6 hover:bg-sky-700 cursor-pointer" />
+                </form>
+            </div>
+        </div>
+
+        <script lang="JavaScript">
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.location.href.indexOf('error') > -1) {
+                    showError();
+                }
+            });
+
+            function checkCode() {
+                var code = document.getElementById("device-code");
+                if (code.value.trim().length < 8) {
+                    showError();
+                    code.focus();
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+
+            function showError() {
+                document.getElementById("error-msg").innerHTML = 'That didn\'t work. Please check the code and try again.';
+            }
+        </script>
+    </body>
+</html>
