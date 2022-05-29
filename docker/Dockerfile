@@ -5,8 +5,7 @@ RUN apt update && \
     apt install ca-certificates libssl1.1 -y
 
 WORKDIR /app
-
-COPY aad-b2c-device-code-flow /app/aad-b2c-device-code-flow
+ADD . /app
 
 EXPOSE 32468
 

@@ -1,7 +1,5 @@
 # Azure AD B2C Device Code Flow Service
 
-![](images/screenhot.png)
-
 This is a web service that can be used to implement a [device code
 flow](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-device-code)
 for [Azure Active Directory
@@ -47,3 +45,59 @@ for what the environment variables mean.
 | AADB2C_DEVICE_CODE_LISTEN_URL    | IP and port where the service should run. For example, `0.0.0.0:32468`                                                                                                                                                                                               |
 | AADB2C_DEVICE_CODE_SCOPES        | Space separated list of permissions/scopes you want granted in the access token                                                                                                                                                                                      |
 | RUST_LOG                         | Rust log settings. For example, "aad_b2c_device_code_flow=trace,tower_http=trace"                                                                                                                                                                                    |
+
+## Usage
+
+### 1. Request Device Code
+
+Request a device code by issuing a HTTP `GET` to the `/code` endpoint. Here's an
+example request and response (I've used [xh](https://github.com/ducaale/xh) as
+my HTTP client below but feel free to use _curl_ or _Postman_ or anything else):
+
+```shell
+$ xh http://localhost:32468/code
+
+HTTP/2.0 200 OK
+content-length: 70
+content-type: application/json
+date: Sun, 29 May 2022 11:30:50 GMT
+server: Caddy
+
+{
+    "code": "Y5HLZ7XO",
+    "url": "http://localhost:32468/device.html"
+}
+```
+
+### 2. Authenticate
+
+Copy the `code` value into the clipboard and open the link in the `url` property in a browser. You should see a screen that looks like this in the browser:
+
+![](images/device-code.png)
+
+Paste the code you copied into the text box and click "Next". You should be taken through the Azure AD B2C user flow. Once authentication completes successfully, you should see a screen like this:
+
+![](images/auth-success.png)
+
+### 3. Retrieve Token
+
+Fetch the access token by issuing a `GET` request to the `/poll-token` endpoint passing in the device code via the query string parameter `code`.
+
+```shell
+$ xh "http://localhost:32468/poll-token?code=Y5HLZ7XO"
+
+HTTP/2.0 200 OK
+content-length: 1235
+content-type: application/json
+date: Sun, 29 May 2022 11:46:33 GMT
+server: Caddy
+
+{
+    "access_token": "eyJ0eXAiOiJKV... rest of the token here.",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "scope": " ... your scopes here ..."
+}
+```
+
+You can imagine your app continually polling the `/poll-token` endpoint while waiting for the user to sign-in. While the authentication is pending `/poll-token` will return HTTP status code `404`.

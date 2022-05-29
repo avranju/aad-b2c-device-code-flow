@@ -13,6 +13,7 @@ mkdir -p "$builddir"
 pushd "$basedir" || exit
 cargo build --release
 cp "$basedir/target/release/aad-b2c-device-code-flow" "$scriptdir/build/aad-b2c-device-code-flow"
+cp -r "$basedir/www" "$scriptdir/build/www"
 cp "$scriptdir/Dockerfile" "$scriptdir/build/Dockerfile"
 popd || exit
 
