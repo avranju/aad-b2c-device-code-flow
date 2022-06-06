@@ -76,7 +76,7 @@ impl AzureAd {
         .set_auth_type(AuthType::RequestBody)
         .set_redirect_uri(RedirectUrl::from_url(self.redirect_url.clone()));
 
-        let (authorize_url, csrf_state) = client
+        let (authorize_url, csrf_token) = client
             .authorize_url(oauth2::CsrfToken::new_random)
             .add_scopes(self.scopes.iter().map(|s| Scope::new(s.clone())))
             .set_pkce_challenge(pkce_code_challenge)
@@ -84,7 +84,7 @@ impl AzureAd {
 
         AuthorizeContext {
             pkce_code_verifier,
-            csrf_token: csrf_state,
+            csrf_token,
             authorize_url,
         }
     }
