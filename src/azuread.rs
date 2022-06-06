@@ -3,7 +3,7 @@ use oauth2::{
     basic::{BasicClient, BasicTokenResponse},
     reqwest::async_http_client,
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenUrl,
+    PkceCodeVerifier, RedirectUrl, RefreshToken, Scope, TokenUrl,
 };
 use url::Url;
 
@@ -109,6 +109,27 @@ impl AzureAd {
             .set_pkce_verifier(PkceCodeVerifier::new(
                 context.pkce_code_verifier.secret().clone(),
             ))
+            .add_extra_param("scope", scopes_str)
+            .request_async(async_http_client)
+            .await?)
+    }
+
+    pub async fn exchange_refresh_token(
+        &self,
+        refresh_token: String,
+    ) -> Result<BasicTokenResponse> {
+        let client = BasicClient::new(
+            self.client_id.clone(),
+            None,
+            self.auth_url.clone(),
+            Some(self.token_url.clone()),
+        )
+        .set_auth_type(AuthType::RequestBody);
+
+        let scopes_str = self.scopes.join(" ");
+
+        Ok(client
+            .exchange_refresh_token(&RefreshToken::new(refresh_token))
             .add_extra_param("scope", scopes_str)
             .request_async(async_http_client)
             .await?)

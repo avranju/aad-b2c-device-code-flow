@@ -162,6 +162,7 @@ async fn main() -> Result<()> {
         .route("/login", post(login))
         .route("/auth/callback", get(auth_callback))
         .route("/poll-token", get(poll_token))
+        .route("/refresh-token", post(refresh_token))
         .fallback(get_service(ServeDir::new("www")).handle_error(handle_error))
         .layer(
             ServiceBuilder::new()
@@ -310,4 +311,22 @@ async fn poll_token(
         CodeTokenStatus::Pending => Err(StatusCode::NO_CONTENT),
         CodeTokenStatus::Complete(token) => Ok(Json(token)),
     }
+}
+
+#[derive(Deserialize)]
+struct RefreshTokenRequest {
+    refresh_token: String,
+}
+
+async fn refresh_token(
+    Extension(state): Extension<State>,
+    Json(request): Json<RefreshTokenRequest>,
+) -> Result<Json<BasicTokenResponse>, StatusCode> {
+    let token = state
+        .azure_ad
+        .exchange_refresh_token(request.refresh_token)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    Ok(Json(token))
 }
