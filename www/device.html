@@ -9,20 +9,34 @@
     </head>
     <body>
         <div class="grid place-items-center h-screen">
-            <div class="w-96 h-auto shadow-xl mx-auto px-4 mt-8 font-sans border-t-8 border-sky-600 pt-9 pb-9 pl-9 pr-9">
+            <div
+                class="w-96 h-auto shadow-xl mx-auto px-4 mt-8 font-sans border-t-8 border-sky-600 pt-9 pb-9 pl-9 pr-9"
+            >
                 <h1 class="text-3xl mt-2">Enter Code</h1>
                 <h3 class="mt-6">
                     Enter the code displayed on your app or device.
-                </h2>
-                <form action="/login" method="post" onsubmit="return checkCode();">
+                </h3>
+                <form
+                    action="/login"
+                    method="post"
+                    onsubmit="return checkCode();"
+                >
+                    <input
+                        type="text"
+                        name="device-code"
+                        class="w-full mt-2 border-b-2 border-slate-400 focus:outline-none pb-2"
+                        id="device-code"
+                        maxlength="16"
+                        autocomplete="off"
+                        placeholder="Code"
+                        autofocus
+                    />
+                    <input
+                        type="submit"
+                        value="Next"
+                        class="w-28 h-8 bg-sky-600 text-white mt-6 hover:bg-sky-700 cursor-pointer"
+                    />
                     <div id="error-msg" class="text-red-600 mt-8 text-sm"></div>
-                    <input type="text" name="device-code"
-                           class="w-full mt-2 border-b-2 border-slate-400 focus:outline-none pb-2"
-                           id="device-code" maxlength="16"
-                           autocomplete="off" placeholder="Code"
-                           autofocus />
-                    <input type="submit" value="Next"
-                           class="w-28 h-8 bg-sky-600 text-white mt-6 hover:bg-sky-700 cursor-pointer" />
                 </form>
             </div>
         </div>
@@ -46,7 +60,12 @@
             }
 
             function showError() {
-                document.getElementById("error-msg").innerHTML = 'That didn\'t work. Please check the code and try again.';
+                var searchParams = new URLSearchParams(window.location.search);
+                var errorMessage = searchParams.get("error");
+                if (!errorMessage) {
+                    errorMessage = 'That didn\'t work. Please check the code and try again.';
+                }
+                document.getElementById("error-msg").innerHTML = errorMessage;
             }
         </script>
     </body>

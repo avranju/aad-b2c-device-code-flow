@@ -21,7 +21,7 @@ use oauth2::basic::BasicTokenResponse;
 use serde::{Deserialize, Serialize};
 use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use tracing::trace;
+use tracing::{error, trace};
 use url::Url;
 
 mod azuread;
@@ -241,18 +241,50 @@ async fn login(Extension(mut state): Extension<State>, Form(login): Form<LoginFo
 
 #[derive(Deserialize)]
 struct AuthResponse {
-    state: String,
-    code: String,
+    state: Option<String>,
+    code: Option<String>,
+    error: Option<String>,
+    error_description: Option<String>,
+}
+
+impl AuthResponse {
+    fn check_error(&mut self) -> bool {
+        if self.error.is_some() || self.error_description.is_some() {
+            return true;
+        }
+
+        // if there's no state or code, we can't do anything
+        if self.state.is_none() || self.code.is_none() {
+            self.error = Some("invalid_response".to_string());
+        }
+
+        self.error.is_some() || self.error_description.is_some()
+    }
+
+    fn get_error(&self) -> String {
+        urlencoding::encode(&format!(
+            "{}; {}",
+            self.error.as_deref().unwrap_or("-"),
+            self.error_description.as_deref().unwrap_or("-")
+        ))
+        .into_owned()
+    }
 }
 
 async fn auth_callback(
     Extension(mut state): Extension<State>,
-    Query(auth_response): Query<AuthResponse>,
+    Query(mut auth_response): Query<AuthResponse>,
 ) -> Redirect {
-    // if there's no state or code, we can't do anything
-    if auth_response.state.is_empty() || auth_response.code.is_empty() {
-        return Redirect::to("/device.html?error=invalid_response");
+    if auth_response.check_error() {
+        return Redirect::to(&format!("/device.html?error={}", auth_response.get_error()));
     }
+
+    let csrf_state = auth_response
+        .state
+        .expect("'state' cannot be None at this point.");
+    let code = auth_response
+        .code
+        .expect("'code' cannot be None at this point.");
 
     // look for a code map entry which has this csrf token in it
     let code_entry = state
@@ -263,7 +295,7 @@ async fn auth_callback(
         .find(|(_, e)| {
             e.auth_context
                 .as_ref()
-                .map(|c| *c.csrf_token.secret() == auth_response.state)
+                .map(|c| *c.csrf_token.secret() == csrf_state)
                 .is_some()
         })
         .map(|(device_code, code_entry)| {
@@ -281,15 +313,14 @@ async fn auth_callback(
         });
 
     if let Some((device_code, auth_context)) = code_entry {
-        let res = state
-            .azure_ad
-            .exchange_code(auth_response.code, &auth_context)
-            .await;
+        let res = state.azure_ad.exchange_code(code, &auth_context).await;
 
         if let Ok(token) = res {
             state.set_code_token(device_code, token);
             Redirect::to("/complete.html")
         } else {
+            let err = res.err().unwrap();
+            error!(%err, "An error occurred while exchanging auth code for a token.");
             Redirect::to("/device.html?error=auth_failed")
         }
     } else {
